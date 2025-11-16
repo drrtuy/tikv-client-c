@@ -97,7 +97,7 @@ TEST_F(TestWith2PCRealTiKV, testCommitRollback)
         txn2.set("c", "c2");
         txn2.commit();
 
-        txn1.commit();
+        ASSERT_THROW(txn1.commit(), pingcap::Exception);
 
         Snapshot snap(test_cluster.get());
         ASSERT_EQ(snap.Get("a"), "a");

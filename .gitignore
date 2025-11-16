@@ -49,3 +49,5 @@ tags
 # JSON Compilation Database Format Specification
 # https://clang.llvm.org/docs/JSONCompilationDatabase.html
 compile_commands.json
+build-tmp/*
+third_party/*

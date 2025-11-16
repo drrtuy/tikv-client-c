@@ -195,6 +195,11 @@ void TwoPhaseCommitter::prewriteSingleBatch(Backoffer & bo, const BatchKeys & ba
                 {
                     throw Exception("key : " + Redact::keyToDebugString(err.already_exist().key()) + " has existed.", LogicalError);
                 }
+                // Re-tryable but not clear how to handle at this level. Should be done higher with full txn re-try. 
+                if (err.has_conflict())
+                {
+                    throw Exception("2PC prewrite unmergeble conflict: ", MergeConflict);
+                }
                 auto lock = extractLockFromKeyErr(err);
                 locks.push_back(lock);
             }
@@ -206,7 +211,6 @@ void TwoPhaseCommitter::prewriteSingleBatch(Backoffer & bo, const BatchKeys & ba
                     ms_before_expired,
                     Exception("2PC prewrite locked: " + std::to_string(locks.size()), LockError));
             }
-            continue;
         }
         else
         {

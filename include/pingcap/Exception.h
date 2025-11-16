@@ -29,7 +29,8 @@ enum ErrorCodes : int
     KeyspaceNotEnabled = 18,
     InternalError = 19,
     GRPCNotImplemented = 20,
-    UnknownError = 21
+    UnknownError = 21,
+    MergeConflict = 22
 };
 
 class Exception : public Poco::Exception
