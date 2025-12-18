@@ -42,7 +42,7 @@ struct Txn
         committer->execute();
     }
 
-    void set(const std::string & key, const std::string & value) { buffer.emplace(key, value); }
+    void set(const std::string & key, const std::string & value) { buffer[key] = value; }
 
     std::pair<std::string, bool> get(const std::string & key)
     {
