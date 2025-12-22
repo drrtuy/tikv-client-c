@@ -44,9 +44,9 @@ TwoPhaseCommitter::TwoPhaseCommitter(Txn * txn, bool _use_async_commit)
     , log(&Logger::get("pingcap.tikv"))
 {
     commited = false;
-    txn->walkBuffer([&](const std::string & key, const std::string & value) {
+    txn->walkBuffer([&](const std::string & key, const Mutation & mutation) {
         keys.push_back(key);
-        mutations.emplace(key, value);
+        mutations[key] = mutation;
     });
     cluster = txn->cluster;
     start_ts = txn->start_ts;
@@ -139,7 +139,12 @@ void TwoPhaseCommitter::prewriteSingleBatch(Backoffer & bo, const BatchKeys & ba
         {
             auto * mut = req.add_mutations();
             mut->set_key(key);
-            mut->set_value(mutations[key]);
+            const auto & m = mutations[key];
+            mut->set_op(m.op);
+            if (m.op == kvrpcpb::Put)
+            {
+                mut->set_value(m.value);
+            }
         }
         req.set_primary_lock(primary_lock);
         req.set_start_version(start_ts);
