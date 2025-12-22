@@ -69,6 +69,37 @@ protected:
     ClusterPtr test_cluster;
 };
 
+TEST_F(TestWith2PCRealTiKV, testDelete)
+{
+    {
+        Txn txn(test_cluster.get());
+        txn.set("test_delete_a", "a");
+        txn.set("test_delete_b", "b");
+        txn.commit();
+
+        Snapshot snap(test_cluster.get());
+        ASSERT_EQ(snap.Get("test_delete_a"), "a");
+        ASSERT_EQ(snap.Get("test_delete_b"), "b");
+    }
+
+    {
+        Txn txn(test_cluster.get());
+        txn.del("test_delete_a");
+        txn.del("test_delete_b");
+        txn.commit();
+
+        Snapshot snap(test_cluster.get());
+        ASSERT_EQ(snap.Get("test_delete_a"), "");
+        ASSERT_EQ(snap.Get("test_delete_b"), "");
+
+        Txn read_txn(test_cluster.get());
+        auto ra = read_txn.get("test_delete_a");
+        ASSERT_EQ(ra.second, false);
+        auto rb = read_txn.get("test_delete_b");
+        ASSERT_EQ(rb.second, false);
+    }
+}
+
 TEST_F(TestWith2PCRealTiKV, testCommitRollback)
 {
 

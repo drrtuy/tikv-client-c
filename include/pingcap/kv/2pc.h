@@ -2,6 +2,7 @@
 
 #include <fiu.h>
 #include <pingcap/Exception.h>
+#include <pingcap/kv/Mutation.h>
 #include <pingcap/kv/Backoff.h>
 #include <pingcap/kv/Cluster.h>
 #include <pingcap/kv/LockResolver.h>
@@ -82,7 +83,7 @@ public:
 struct TwoPhaseCommitter : public std::enable_shared_from_this<TwoPhaseCommitter>
 {
 private:
-    std::unordered_map<std::string, std::string> mutations;
+    std::unordered_map<std::string, Mutation> mutations;
 
     std::vector<std::string> keys;
     uint64_t start_ts = 0;
@@ -169,7 +170,7 @@ private:
                     auto & key = group.second[end];
                     size += key.size();
                     if constexpr (action == ActionPrewrite)
-                        size += mutations[key].size();
+                        size += (mutations[key].op == kvrpcpb::Put ? mutations[key].value.size() : 0);
 
                     if (key == primary_lock)
                         primary_idx = batches.size();

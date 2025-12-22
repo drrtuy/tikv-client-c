@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pingcap/kv/Mutation.h>
 #include <pingcap/kv/2pc.h>
 #include <pingcap/kv/Cluster.h>
 #include <pingcap/kv/Snapshot.h>
@@ -12,7 +13,7 @@ namespace pingcap
 {
 namespace kv
 {
-using Buffer = std::map<std::string, std::string>;
+using Buffer = std::map<std::string, Mutation>;
 
 // Txn supports transaction operation for TiKV.
 // Note that this implementation is only used for TEST right now.
@@ -42,14 +43,20 @@ struct Txn
         committer->execute();
     }
 
-    void set(const std::string & key, const std::string & value) { buffer.emplace(key, value); }
+    void set(const std::string & key, const std::string & value) { buffer[key] = Mutation{kvrpcpb::Put, value}; }
+
+    void del(const std::string & key) { buffer[key] = Mutation{kvrpcpb::Del, std::string{}}; }
 
     std::pair<std::string, bool> get(const std::string & key)
     {
         auto it = buffer.find(key);
         if (it != buffer.end())
         {
-            return std::make_pair(it->second, true);
+            if (it->second.op == kvrpcpb::Del)
+            {
+                return std::make_pair("", false);
+            }
+            return std::make_pair(it->second.value, true);
         }
         Snapshot snapshot(cluster, start_ts);
         std::string value = snapshot.Get(key);
@@ -58,7 +65,7 @@ struct Txn
         return std::make_pair(value, true);
     }
 
-    void walkBuffer(std::function<void(const std::string &, const std::string &)> foo)
+    void walkBuffer(std::function<void(const std::string &, const Mutation &)> foo)
     {
         for (auto & it : buffer)
         {
